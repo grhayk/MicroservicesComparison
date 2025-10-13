@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+option csharp_namespace = "InventoryService.Grpc";
+
+package inventory;
+
+// The inventory service definition
+service InventoryService {
+  // Check if items are available in stock
+  rpc CheckAvailability (CheckAvailabilityRequest) returns (CheckAvailabilityResponse);
+  
+  // Reserve items (decrease stock)
+  rpc ReserveItems (ReserveItemsRequest) returns (ReserveItemsResponse);
+  
+  // Release reserved items (increase stock back)
+  rpc ReleaseItems (ReleaseItemsRequest) returns (ReleaseItemsResponse);
+  
+  // Get item details
+  rpc GetItem (GetItemRequest) returns (GetItemResponse);
+}
+
+// Request to check availability
+message CheckAvailabilityRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message CheckAvailabilityResponse {
+  bool is_available = 1;
+  int32 available_quantity = 2;
+  string message = 3;
+}
+
+// Request to reserve items
+message ReserveItemsRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+  string order_id = 3;
+}
+
+message ReserveItemsResponse {
+  bool success = 1;
+  string message = 2;
+  int32 remaining_quantity = 3;
+}
+
+// Request to release items
+message ReleaseItemsRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+  string order_id = 3;
+}
+
+message ReleaseItemsResponse {
+  bool success = 1;
+  string message = 2;
+  int32 updated_quantity = 3;
+}
+
+// Request to get item
+message GetItemRequest {
+  string product_id = 1;
+}
+
+message GetItemResponse {
+  string product_id = 1;
+  string name = 2;
+  int32 quantity = 3;
+  double price = 4;
+  bool found = 5;
+}
