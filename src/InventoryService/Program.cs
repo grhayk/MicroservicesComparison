@@ -1,4 +1,5 @@
 using InventoryService.Data;
+using InventoryService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

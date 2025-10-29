@@ -1,41 +1,85 @@
+using Polly;
+using Polly.Extensions.Http;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// Configure HTTP Client with Polly retry policy
+var retryPolicy = HttpPolicyExtensions
+    .HandleTransientHttpError()
+    .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
+// Register HTTP Inventory Service
+builder.Services.AddHttpClient<HttpInventoryService>()
+    .AddPolicyHandler(retryPolicy);
+
+// Register gRPC Inventory Service
+builder.Services.AddSingleton<GrpcInventoryService>();
+
+// Register RabbitMQ Publisher
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
+
+// Add health checks
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger(); // <-- This requires the Swashbuckle.AspNetCore NuGet package
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseCors();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseAuthorization();
 
-app.MapGet("/weatherforecast", () =>
+app.MapControllers();
+
+// Health check endpoint
+app.MapHealthChecks("/health");
+
+// Root endpoint with info
+app.MapGet("/", () => new
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    service = "Order Service",
+    version = "1.0.0",
+    endpoints = new
+    {
+        createOrderHttp = "POST /api/orders/http",
+        createOrderGrpc = "POST /api/orders/grpc",
+        health = "/health",
+        swagger = "/swagger"
+    },
+    communicationTypes = new[]
+    {
+        "HTTP/REST - Synchronous communication with Inventory Service",
+        "gRPC - High-performance synchronous communication with Inventory Service",
+        "RabbitMQ - Asynchronous messaging for notifications"
+    },
+    timestamp = DateTime.UtcNow
+});
+
+app.Logger.LogInformation("Order Service started");
+app.Logger.LogInformation("HTTP communication available at: POST /api/orders/http");
+app.Logger.LogInformation("gRPC communication available at: POST /api/orders/grpc");
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
