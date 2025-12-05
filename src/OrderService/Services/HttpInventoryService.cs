@@ -17,7 +17,7 @@ namespace OrderService.Services
         {
             _httpClient = httpClient;
             _logger = logger;
-            _baseUrl = configuration["InventoryService:HttpUrl"] ?? "http://localhost:5002";
+            _baseUrl = configuration["InventoryService:HttpUrl"] ?? "http://localhost:5120";
             _httpClient.BaseAddress = new Uri(_baseUrl);
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }

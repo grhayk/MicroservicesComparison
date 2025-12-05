@@ -16,7 +16,7 @@ namespace OrderService.Services
             ILogger<GrpcInventoryService> logger)
         {
             _logger = logger;
-            _grpcUrl = configuration["InventoryService:GrpcUrl"] ?? "http://localhost:5012";
+            _grpcUrl = configuration["InventoryService:GrpcUrl"] ?? "http://localhost:5120";
 
             // Create gRPC channel
             _channel = GrpcChannel.ForAddress(_grpcUrl, new GrpcChannelOptions
